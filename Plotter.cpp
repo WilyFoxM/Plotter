@@ -6,8 +6,8 @@
 #include <iostream>
 #include <vector>
 
-#define WIDTH 50
-#define HEIGHT 50
+#define WIDTH 100
+#define HEIGHT 100
 
 #define my_sizeof(type) ((char *)(&type+1)-(char*)(&type))
 
@@ -111,7 +111,7 @@ void render(char canvas[]) {
         //y_v += 1;
 
         for (int y = 0; y < HEIGHT; ++y) {
-             printf(" %c ", canvas[x * WIDTH + y]);
+             printf("%c ", canvas[x * WIDTH + y]);
         }
         printf("%c", '\n');
     }
@@ -122,7 +122,7 @@ void render(char canvas[]) {
     //    printf("-"); 
     //}
 
-    printf("\n");
+    //printf("\n");
     //printf("     ");
 
     //for (int x = 0; x < WIDTH; ++x) {
@@ -207,13 +207,13 @@ int main(void)
     projectionMatrix.m[2][3] = 1.0f;
     projectionMatrix.m[3][3] = 0.0f;
 
-    Matrix4 rotateZ, rotateX;
+    Matrix4 rotateZ, rotateX, rotateY;
     float rotationAngle = 1.0f;
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 100; ++i) {
         clear_canvas(canvas);
 
-        rotationAngle += 1.0f;
+        rotationAngle += 0.1f;
 
         //Rotation Matricies
         // 
@@ -233,23 +233,35 @@ int main(void)
         rotateX.m[2][2] = cosf(rotationAngle * 0.5f);
         rotateX.m[3][3] = 1;
 
+        // Rotation Y
+        rotateY.m[0][0] = cosf(rotationAngle);
+        rotateY.m[0][2] = -sinf(rotationAngle);
+        rotateY.m[1][1] = 1;
+        rotateY.m[2][0] = sinf(rotationAngle);
+        rotateY.m[2][2] = cosf(rotationAngle);
+        rotateY.m[3][3] = 1;
+
         for (auto tri : cubeMesh.triangles) {
             Triangle projected, translated, rotatedZ, rotatedZX;
 
             // Rotation
-            multiply_by_matrix(tri.p[0], rotatedZ.p[0], rotateZ);
-            multiply_by_matrix(tri.p[1], rotatedZ.p[1], rotateZ);
-            multiply_by_matrix(tri.p[2], rotatedZ.p[2], rotateZ);
+            //multiply_by_matrix(tri.p[0], rotatedZ.p[0], rotateZ);
+            //multiply_by_matrix(tri.p[1], rotatedZ.p[1], rotateZ);
+            //multiply_by_matrix(tri.p[2], rotatedZ.p[2], rotateZ);
 
             //multiply_by_matrix(rotatedZ.p[0], rotatedZX.p[0], rotateX);
             //multiply_by_matrix(rotatedZ.p[1], rotatedZX.p[1], rotateX);
             //multiply_by_matrix(rotatedZ.p[2], rotatedZX.p[2], rotateX);
 
+            multiply_by_matrix(tri.p[0], rotatedZX.p[0], rotateY);
+            multiply_by_matrix(tri.p[1], rotatedZX.p[1], rotateY);
+            multiply_by_matrix(tri.p[2], rotatedZX.p[2], rotateY);
+
             // Translating
-            translated = rotatedZ;
-            translated.p[0].z = rotatedZ.p[0].z + 3.0f;
-            translated.p[1].z = rotatedZ.p[1].z + 3.0f;
-            translated.p[2].z = rotatedZ.p[2].z + 3.0f;
+            translated = rotatedZX;
+            translated.p[0].z = rotatedZX.p[0].z + 3.0f;
+            translated.p[1].z = rotatedZX.p[1].z + 3.0f;
+            translated.p[2].z = rotatedZX.p[2].z + 3.0f;
 
             // Projecting 3d triangle to 2d screen
             multiply_by_matrix(translated.p[0], projected.p[0], projectionMatrix);
@@ -265,22 +277,30 @@ int main(void)
             projected.p[1].x *= 0.5f * (float)WIDTH; projected.p[1].y *= 0.5f * (float)HEIGHT;
             projected.p[2].x *= 0.5f * (float)WIDTH; projected.p[2].y *= 0.5f * (float)HEIGHT;
 
-            plot_triangle(projected, canvas);
+            if (projected.p[0].x >= (float)WIDTH) { projected.p[0].x = (float)WIDTH - 1; };
+            if (projected.p[1].x >= (float)WIDTH) { projected.p[1].x = (float)WIDTH - 1; };
+            if (projected.p[2].x >= (float)WIDTH) { projected.p[2].x = (float)WIDTH - 1; };
 
-            //plot_line({ (int)projected.p[0].x, (int)projected.p[0].y, '#' }, { (int)projected.p[1].x, (int)projected.p[1].y, '#' }, canvas);
-            //plot_line({ (int)projected.p[1].x, (int)projected.p[1].y, '#' }, { (int)projected.p[2].x, (int)projected.p[2].y, '#' }, canvas);
-            //plot_line({ (int)projected.p[0].x, (int)projected.p[0].y, '#' }, { (int)projected.p[2].x, (int)projected.p[2].y, '#' }, canvas);
+            if (projected.p[0].y >= (float)HEIGHT) { projected.p[0].y = (float)HEIGHT - 1; };
+            if (projected.p[1].y >= (float)HEIGHT) { projected.p[1].y = (float)HEIGHT - 1; };
+            if (projected.p[2].y >= (float)HEIGHT) { projected.p[2].y = (float)HEIGHT - 1; };
+
+            plot_triangle(projected, canvas);
 
             plot({ (int)projected.p[0].x, (int)projected.p[0].y, '#' }, canvas);
             plot({ (int)projected.p[1].x, (int)projected.p[1].y, '#' }, canvas);
             plot({ (int)projected.p[2].x, (int)projected.p[2].y, '#' }, canvas);
 
+            //plot_line({ (int)projected.p[0].x, (int)projected.p[0].y, '#' }, { (int)projected.p[1].x, (int)projected.p[1].y, '#' }, canvas);
+            //plot_line({ (int)projected.p[1].x, (int)projected.p[1].y, '#' }, { (int)projected.p[2].x, (int)projected.p[2].y, '#' }, canvas);
+            //plot_line({ (int)projected.p[0].x, (int)projected.p[0].y, '#' }, { (int)projected.p[2].x, (int)projected.p[2].y, '#' }, canvas);
+
             //printf("x: %f, y: %f  |  x: %f, y: %f  |  x: %f, y: %f\n", projected.p[0].x, projected.p[0].y, projected.p[1].x, projected.p[1].y, projected.p[2].x, projected.p[2].y);
         }
         
-        clear();
         render(canvas);
         Sleep(5);
+        clear();
     }
 
     //Point points[] = { { 10, 10, '0' }, { 15, 17, '0' }, { 19, 5, '0' }, { 21, 22, '0' } };
